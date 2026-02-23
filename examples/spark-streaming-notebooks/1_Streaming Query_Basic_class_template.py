@@ -60,10 +60,15 @@ for query in spark.streams.active:
 try:
     dbutils.fs.rm(working_dir, recurse=True)
     print(f"✅ Cleaned up working directory: {working_dir}")
+    dbutils.fs.rm(checkpoint_dir, recurse=True)
 except Exception as e:
     print(f"⚠️ Cleanup note: {e}")
 
 print("Ready to start!")
+
+# COMMAND ----------
+
+dbutils.fs.ls(working_dir)
 
 # COMMAND ----------
 
@@ -145,9 +150,11 @@ streaming_source_df = (transactions_df
         .otherwise(lit("Desktop"))
     )
 )
+#df.repartition(N).write.format("delta").save(path)
 
 # Write as Delta table (our streaming source)
 (streaming_source_df
+ .repartition(10)
  .write
  .format("delta")
  .mode("overwrite")
@@ -156,6 +163,36 @@ streaming_source_df = (transactions_df
 
 print(f"✅ Created streaming source with {streaming_source_df.count():,} transactions")
 display(streaming_source_df.limit(10))
+
+
+
+# COMMAND ----------
+
+def count_files(path):
+    count = 0
+    for f in dbutils.fs.ls(path):
+        if f.isDir():
+            count += count_files(f.path)
+        else:
+            count += 1
+    return count
+
+count_files(working_dir)
+dbutils.fs.ls(f"{working_dir}/streaming_source")
+files = dbutils.fs.ls(f"{working_dir}/streaming_source")
+len([f for f in files if f.name.endswith(".parquet")])
+display(files)
+
+from pyspark.sql.functions import col
+
+(
+    spark.read.format("delta")
+    .load(f"{working_dir}/streaming_source")
+    .withColumn("file", col("_metadata.file_path"))
+    .groupBy("file")
+    .count()
+    .show(truncate=False)
+)
 
 # COMMAND ----------
 
@@ -178,7 +215,8 @@ print("✅ Streaming source data prepared successfully")
 
 # COMMAND ----------
 
-# Create a streaming DataFrame
+dbutils.fs.rm(checkpoint_dir, recurse=True)
+#Create a streaming DataFrame
 df = (spark.readStream
     .option("maxFilesPerTrigger", 1)  # Process 1 file per trigger to simulate streaming
     .format("delta")
