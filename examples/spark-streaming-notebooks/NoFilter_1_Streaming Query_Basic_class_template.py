@@ -68,6 +68,10 @@ print("Ready to start!")
 
 # COMMAND ----------
 
+dbutils.fs.ls(working_dir)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ---
 # MAGIC # Important: Databricks Free Edition Compatibility
@@ -146,11 +150,9 @@ streaming_source_df = (transactions_df
         .otherwise(lit("Desktop"))
     )
 )
-#df.repartition(N).write.format("delta").save(path)
 
 # Write as Delta table (our streaming source)
 (streaming_source_df
- .repartition(10)
  .write
  .format("delta")
  .mode("overwrite")
@@ -161,10 +163,6 @@ print(f"✅ Created streaming source with {streaming_source_df.count():,} transa
 display(streaming_source_df.limit(10))
 
 
-
-# COMMAND ----------
-
-dbutils.fs.ls(working_dir)
 
 # COMMAND ----------
 
@@ -216,7 +214,7 @@ print("✅ Streaming source data prepared successfully")
 # COMMAND ----------
 
 dbutils.fs.rm(checkpoint_dir, recurse=True)
-#Create a streaming DataFrame
+# Create a streaming DataFrame
 df = (spark.readStream
     .option("maxFilesPerTrigger", 1)  # Process 1 file per trigger to simulate streaming
     .format("delta")
@@ -258,7 +256,7 @@ traffic_df = (df
     .withColumn("is_mobile", col("device").isin(["iOS", "Android"]))
     .select("transactionID", "dateTime", "device", "is_mobile", "totalPrice")
 )
-
+traffic_df = df
 print("✅ Transformations applied to streaming DataFrame")
 
 # COMMAND ----------
