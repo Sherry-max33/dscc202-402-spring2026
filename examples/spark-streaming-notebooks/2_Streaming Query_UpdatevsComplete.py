@@ -163,6 +163,10 @@ source_check_df = spark.read.format("delta").load(f"{working_dir}/streaming_sour
 print(f"Total records in streaming source: {source_check_df.count():,}")
 display(source_check_df.groupBy("batch_id").count().orderBy("batch_id"))
 
+files = dbutils.fs.ls(f"{working_dir}/streaming_source")
+parquet_files = [f for f in files if f.name.endswith(".parquet")]
+len(parquet_files), parquet_files
+
 # COMMAND ----------
 
 # MAGIC %md
@@ -188,12 +192,13 @@ display(source_check_df.groupBy("batch_id").count().orderBy("batch_id"))
 
 from pyspark.sql.functions import window, sum as _sum, count, col
 
-# Create streaming DataFrame with watermark
+#Create streaming DataFrame with watermark
 streaming_df = (spark.readStream
     .format("delta")
     .load(f"{working_dir}/streaming_source")
     .withWatermark("dateTime", "10 minutes")  # Wait up to 10 minutes for late data
 )
+
 
 # Aggregate by hourly windows and franchiseID
 hourly_sales = (streaming_df
@@ -276,6 +281,19 @@ hourly_totals = (append_results_df
 )
 
 display(hourly_totals)
+
+# COMMAND ----------
+
+overall_totals = (
+    append_results_df
+      .agg(
+          _sum("transaction_count").alias("total_transactions"),
+          _sum("total_sales").alias("total_revenue")
+      )
+)
+overall_totals.show()
+
+append_results_df.groupBy("hour_start", "hour_end").count().orderBy("hour_start").show()
 
 # COMMAND ----------
 
