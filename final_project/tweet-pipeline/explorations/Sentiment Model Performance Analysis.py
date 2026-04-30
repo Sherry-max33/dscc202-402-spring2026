@@ -46,6 +46,26 @@
 
 # TODO: Load gold table
 
+from pyspark.sql import functions as F
+
+import pandas as pd
+import mlflow
+from mlflow.tracking import MlflowClient
+
+from delta.tables import DeltaTable
+
+import matplotlib.pyplot as plt
+
+from sklearn.metrics import (
+    confusion_matrix,
+    classification_report,
+    ConfusionMatrixDisplay
+)
+
+# Load gold table
+gold_df = spark.read.format("delta").table("workspace.default.tweets_gold")
+
+display(gold_df.limit(10))
 
 # COMMAND ----------
 
@@ -65,6 +85,33 @@
 
 # TODO: Generate classification report
 
+from sklearn.metrics import classification_report
+import pandas as pd
+
+# Convert gold DataFrame to pandas
+gold_pd = gold_df.toPandas()
+
+# Extract true labels
+y_true = gold_pd["sentiment_id"]
+
+# Extract predicted labels
+y_pred = gold_pd["predicted_sentiment_id"]
+
+# Define target names
+target_names = ["Negative", "Positive"]
+
+# Generate classification report
+report = classification_report(
+    y_true,
+    y_pred,
+    target_names=target_names,
+    output_dict=True
+)
+
+# Convert report to pandas DataFrame for display
+report_df = pd.DataFrame(report).transpose()
+
+display(report_df)
 
 # COMMAND ----------
 
@@ -85,6 +132,22 @@
 # COMMAND ----------
 
 # TODO: Create and display confusion matrix
+
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
+
+# Generate confusion matrix
+cm = confusion_matrix(y_true, y_pred)
+
+target_names = ["Negative", "Positive"]
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=target_names)
+
+disp.plot()
+plt.title("Confusion Matrix")
+
+plt.savefig("confusion_matrix.png", bbox_inches="tight")
+
+plt.show()
 
 
 # COMMAND ----------
@@ -110,6 +173,31 @@
 # COMMAND ----------
 
 # TODO: Log metrics and artifacts to MLflow
+
+import mlflow
+from delta.tables import DeltaTable
+
+# Set MLflow registry to Unity Catalog
+mlflow.set_registry_uri("databricks-uc")
+
+# Get Delta table version
+history_df = spark.sql("DESCRIBE HISTORY tweets_silver")
+silver_version = history_df.select("version").first()[0]
+
+# Start MLflow run
+with mlflow.start_run():
+
+    # Log metrics
+    accuracy = report["accuracy"]
+    mlflow.log_metric("accuracy", accuracy)
+
+    # Log parameters
+    mlflow.log_param("model_name", "workspace.default.small_sentiment_model")
+    mlflow.log_param("model_version", 1)
+    mlflow.log_param("silver_delta_version", silver_version)
+
+    # Log artifact (confusion matrix figure)
+    mlflow.log_artifact("confusion_matrix.png")
 
 
 # COMMAND ----------
