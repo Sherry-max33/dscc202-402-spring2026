@@ -1,9 +1,6 @@
 {
   "name": "job_configuration",
   "email_notifications": {
-    "on_success": [
-      "sherrywangtw0329@gmail.com"
-    ],
     "on_failure": [
       "sherrywangtw0329@gmail.com"
     ],
