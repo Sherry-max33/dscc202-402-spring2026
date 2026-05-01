@@ -1,0 +1,57 @@
+{
+  "name": "job_configuration",
+  "email_notifications": {
+    "on_success": [
+      "sherrywangtw0329@gmail.com"
+    ],
+    "on_failure": [
+      "sherrywangtw0329@gmail.com"
+    ],
+    "no_alert_for_skipped_runs": false
+  },
+  "webhook_notifications": {},
+  "notification_settings": {
+    "no_alert_for_skipped_runs": false,
+    "no_alert_for_canceled_runs": false
+  },
+  "timeout_seconds": 0,
+  "schedule": {
+    "quartz_cron_expression": "22 0 2 * * ?",
+    "timezone_id": "UTC",
+    "pause_status": "UNPAUSED"
+  },
+  "max_concurrent_runs": 1,
+  "tasks": [
+    {
+      "task_key": "run_pipeline",
+      "run_if": "ALL_SUCCESS",
+      "pipeline_task": {
+        "pipeline_id": "20e14bc3-e2bc-4007-b0e5-324a38fe9ff0",
+        "full_refresh": false
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "refresh_dashboard",
+      "depends_on": [
+        {
+          "task_key": "run_pipeline"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "dashboard_task": {
+        "subscription": {},
+        "dashboard_id": "01f13e92ccae155398e7a2f3b9d8bbb6"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    }
+  ],
+  "queue": {
+    "enabled": true
+  },
+  "performance_target": "PERFORMANCE_OPTIMIZED"
+}
