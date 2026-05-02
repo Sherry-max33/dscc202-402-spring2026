@@ -110,8 +110,12 @@ report = classification_report(
 
 # Convert report to pandas DataFrame for display
 report_df = pd.DataFrame(report).transpose()
+report_df = report_df.drop(index="accuracy")
+
+report_df = report_df.reset_index().rename(columns={"index": "class"})
 
 display(report_df)
+print(f"Accuracy: {report['accuracy']:.4f}")
 
 # COMMAND ----------
 
