@@ -66,9 +66,14 @@
         "SELECT\n",
         "  b.total_tweets,\n",
         "  s.tweets_without_mentions,\n",
-        "  b.total_tweets - s.tweets_without_mentions AS tweets_with_mentions\n",
+        "  m.tweets_with_mentions\n",
         "FROM bronze_total b\n",
-        "CROSS JOIN silver_no_mentions s;"
+        "CROSS JOIN silver_no_mentions s\n",
+        "CROSS JOIN (\n",
+        "    SELECT COUNT(*) AS tweets_with_mentions\n",
+        "    FROM tweets_silver\n",
+        "    WHERE mention IS NOT NULL\n",
+        ") m;"
       ]
     },
     {
@@ -90,11 +95,11 @@
       "queryLines": [
         "SELECT\n",
         "  mention,\n",
-        "  positive AS `Sentiment Power (pos)`\n",
+        "  (positive - negative) AS `Sentiment Power (pos-neg)`\n",
         "FROM gold_tweet_aggregations\n",
         "WHERE mention IS NOT NULL\n",
-        "ORDER BY positive DESC\n",
-        "LIMIT 20;"
+        "ORDER BY (positive - negative) DESC\n",
+        "LIMIT 10;"
       ]
     },
     {
@@ -103,11 +108,11 @@
       "queryLines": [
         "SELECT\n",
         "  mention,\n",
-        "  negative AS `Sentiment Power (neg)`\n",
+        "  (negative - positive) AS `Sentiment Power (neg-pos)`\n",
         "FROM gold_tweet_aggregations\n",
         "WHERE mention IS NOT NULL\n",
-        "ORDER BY negative DESC\n",
-        "LIMIT 20;"
+        "ORDER BY (negative - positive) DESC\n",
+        "LIMIT 10;"
       ]
     }
   ],
@@ -276,7 +281,7 @@
               "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "Top 10 Tweeter by Tweet Count"
+                "title": "Top 10 Users by Tweet Count"
               },
               "mark": {
                 "colors": [
@@ -359,8 +364,8 @@
                   "datasetName": "5afb228d",
                   "fields": [
                     {
-                      "name": "Sentiment Power (pos)",
-                      "expression": "`Sentiment Power (pos)`"
+                      "name": "Sentiment Power (pos-neg)",
+                      "expression": "`Sentiment Power (pos-neg)`"
                     },
                     {
                       "name": "mention",
@@ -375,7 +380,7 @@
               "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "Top 20 Positive Tweet Getters"
+                "title": "Top 10 Most Positively Mentioned"
               },
               "mark": {
                 "colors": [
@@ -424,7 +429,7 @@
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "Sentiment Power (pos)",
+                  "fieldName": "Sentiment Power (pos-neg)",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -458,8 +463,8 @@
                   "datasetName": "df6530c5",
                   "fields": [
                     {
-                      "name": "Sentiment Power (neg)",
-                      "expression": "`Sentiment Power (neg)`"
+                      "name": "Sentiment Power (neg-pos)",
+                      "expression": "`Sentiment Power (neg-pos)`"
                     },
                     {
                       "name": "mention",
@@ -474,7 +479,7 @@
               "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "Top 20 Negative Tweet Getters"
+                "title": "Top 10 Most Negatively Mentioned"
               },
               "mark": {
                 "colors": [
@@ -523,7 +528,7 @@
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "Sentiment Power (neg)",
+                  "fieldName": "Sentiment Power (neg-pos)",
                   "scale": {
                     "type": "quantitative"
                   }
